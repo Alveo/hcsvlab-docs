@@ -7,7 +7,7 @@ These instructions describe the process of installing and configuring the Alveo 
 ### Assumptions
 
 * You have a fresh CentOS 6 machine. 
-* You have a non-root user account on the machine with sudo privileges called 'devel'. It is helpful for devel to be able to sudo without a password (e.g. `usermod -a -G wheel devel && echo "%wheel ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/devel-sudo`) for this guide and also future Capistrano deployments.
+* You have a non-root user account on the machine with sudo privileges called 'devel'. It is helpful for devel to be able to sudo without a password (e.g. `usermod -a -G wheel devel && echo "%wheel ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/devel-sudo`) both for this guide and future Capistrano deployments.
 * You are logged in as this user and are in the home directory.
 * You have a GitHub account and have set up ssh keys (see https://help.github.com/articles/generating-ssh-keys)
 * You have a local installation of Ansible
@@ -112,7 +112,7 @@ These are additional repositories that are not enabled by default but contain so
 
 **Install git and other useful packages**
 
-    $ sudo yum install gcc gcc-c++ patch readline readline-devel zlib zlib-devel libyaml-devel libffi-devel openssl openssl-devel make bzip2 autoconf automake libtool bison httpd httpd-devel apr-devel apr-util-devel mod_xsendfile ntp postgresql postgresql-libs postgresql-server postgresql-devel postfix curl curl-devel openssl openssl-devel tzdata libxml2 libxml2-devel libxslt libxslt-devel sqlite-devel git system-config-firewall-tui ImageMagick ImageMagick-devel
+    $ sudo yum install gcc gcc-c++ patch readline readline-devel zlib zlib-devel libyaml-devel libffi-devel openssl openssl-devel make bzip2 autoconf automake libtool bison httpd httpd-devel apr-devel apr-util-devel mod_xsendfile ntp postgresql postgresql-libs postgresql-server postgresql-devel postfix curl curl-devel openssl openssl-devel tzdata libxml2 libxml2-devel libxslt libxslt-devel sqlite-devel git system-config-firewall-tui ImageMagick ImageMagick-devel mod_ssl
 
 **Make directories to rotate Apache log files**
 
@@ -125,7 +125,7 @@ See [Postgres setup](Postgres.md)
 
 **Install RVM and Ruby**
 
-On the web server, depending on what other playbooks you've run, [RVM](http://rvm.io) may already be installed. 
+On the web server, depending on what playbooks you've run, [RVM](http://rvm.io) may already be installed. 
 
 If so:
 
@@ -146,12 +146,16 @@ Passenger is an Apache2 module that serves Ruby on Rails applications. For more 
 
 Install
 
-    $ gem install passenger
+    $ rvm use ruby-2.1.4
+    $ gem install rubygems-update
+    $ update_rubygems # for rack backwards compatibility
+    $ gem install rack -v=1.6.4
+    $ gem install passenger -v=5.0.10 --conservative
     $ passenger-install-apache2-module
     
 Configure
 
-> Note: The values for serverName and any file paths should specify values valid for your environment
+> Note: ensure your `ServerName` and any file paths (including Passenger versions) are valid for your environment.
 	
     $ sudo vi /etc/httpd/conf.d/hcsvlab.conf
     ...
@@ -159,16 +163,20 @@ Configure
     Listen 443
     
     <VirtualHost *:80>
-            ServerName ic2-hcsvlab-qa2-vm.intersect.org.au
-            Redirect permanent / https://ic2-hcsvlab-qa2-vm.intersect.org.au/
+            ServerName alveo.example.com
+            Redirect permanent / https://alveo.example.com/
     </VirtualHost>
     
     <VirtualHost *:443>
-        ServerName ic2-hcsvlab-qa2-vm.intersect.org.au
+        ServerName alveo.example.com
         DocumentRoot /home/devel/hcsvlab-web/current/public
-        LoadModule passenger_module /home/devel/.rvm/gems/ruby-2.0.0-p0/gems/passenger-4.0.5/libout/apache2/mod_passeng$
-        PassengerRoot /home/devel/.rvm/gems/ruby-2.0.0-p0/gems/passenger-4.0.5
-        PassengerDefaultRuby /home/devel/.rvm/wrappers/ruby-2.0.0-p0/ruby
+
+        LoadModule passenger_module /home/devel/.rvm/gems/ruby-2.1.4/gems/passenger-5.0.10/buildout/apache2/mod_passenger.so
+        <IfModule mod_passenger.c>
+            PassengerRoot /home/devel/.rvm/gems/ruby-2.1.4/gems/passenger-5.0.10
+            PassengerDefaultRuby /home/devel/.rvm/gems/ruby-2.1.4/wrappers/ruby
+        </IfModule>
+
         RailsEnv qa2
 
         SSLEngine on
@@ -203,7 +211,7 @@ Be sure to place proper SSL cerificates into /etc/httpd/ssl
 
 **Open Ports for the Web Services**
 
-Edit `iptables` to open up port 80, and optionally 8080 for Tomcat (see below):
+Edit `iptables` to open up the web ports, optionally including 8080 for Tomcat (see below):
 
     $ sudo vi /etc/sysconfig/iptables
 	
@@ -211,6 +219,7 @@ Add the lines:
 
     -A INPUT -m state --state NEW -m tcp -p tcp --dport 80 -j ACCEPT
     -A INPUT -m state --state NEW -m tcp -p tcp --dport 8080 -j ACCEPT
+    -A INPUT -m state --state NEW -m tcp -p tcp --dport 443 -j ACCEPT
 
 right after this line:
 
@@ -225,28 +234,26 @@ Restart Apache -- won't work without Passenger installed
     $ sudo chkconfig --level 345 httpd on
     $ sudo service httpd restart
 
-**Make a directory for the app (capistrano needs this)**
+**Make a directory for the app (Capistrano needs this)**
 
-    $ mkdir ~/hcsvlab-web
-    $ mkdir ~/hcsvlab-web/releases
+    $ mkdir -p ~/hcsvlab-web/releases
 
 **Install Java**
 
-Download JDK 6 update 45 from Oracle.
+    $ yum install jdk1.8.0_74 # or similar
 
-[jdk-6u45-linux-x64-rpm.bin](http://www.oracle.com/technetwork/java/javase/downloads/jdk6downloads-1902814.html)
+Alternatively, download the [Oracle JDK](http://www.oracle.com/technetwork/java/javase/downloads/index.html). At the time of writing, the version was 8u121. This requires clicking a license agreement, so you will have to download it to your local machine, then scp it to your target machine.
 
-This requires clicking a license agreement, so you will have to download it to your local machine, then scp it to your target machine.
+For example:
 
-    $ scp jdk-6u45-linux-x64-rpm.bin devel@ic2-hcsvlab-qa2-vm.intersect.org.au:~/downloads
-    $ ssh devel@ic2-hcsvlab-qa2-vm.intersect.org.au
+    $ scp jdk-6u45-linux-x64-rpm.bin devel@example.com:
+    $ ssh devel@example.com
     ...
-    $ cd downloads
-    $ chmod +x jdk-6u45-linux-x64-rpm.bin
-    $ sudo ./jdk-6u45-linux-x64-rpm.bin
-    $ sudo alternatives --install /usr/bin/java java /usr/java/jdk1.6.0_45/jre/bin/java 20000
-    $ sudo alternatives --install /usr/bin/javac javac /usr/java/jdk1.6.0_45/bin/javac 20000
-    $ sudo alternatives --install /usr/bin/jar jar /usr/java/jdk1.6.0_45/bin/jar 20000
+    $ sudo rpm -i jdk-8u74-linux-x64.rpm
+
+    $ sudo alternatives --install /usr/bin/java java /usr/java/jdk1.8.0_74/jre/bin/java 20000
+    $ sudo alternatives --install /usr/bin/javac javac /usr/java/jdk1.8.0_74/bin/javac 20000
+    $ sudo alternatives --install /usr/bin/jar jar /usr/java/jdk1.8.0_74/bin/jar 20000
     $ sudo alternatives --config java
     $ sudo alternatives --config javac
     $ sudo alternatives --config jar
@@ -255,7 +262,7 @@ This requires clicking a license agreement, so you will have to download it to y
 
 ActiveMQ is the messaging component used by the system. For more informaiton see the [Apache ActiveMQ](http://activemq.apache.org/) site.
 
-    $ wget http://mirror.ventraip.net.au/apache/activemq/apache-activemq/5.8.0/apache-activemq-5.8.0-bin.tar.gz
+    $ wget http://archive.apache.org/dist/activemq/apache-activemq/5.8.0/apache-activemq-5.8.0-bin.tar.gz
     $ tar -xvzf apache-activemq-5.8.0-bin.tar.gz
     $ sudo mv apache-activemq-5.8.0 /opt
     $ sudo ln -s /opt/apache-activemq-5.8.0 /opt/activemq
@@ -296,12 +303,12 @@ Deployment is done from another machine to the target server setup in the steps 
 
 On your deployment machine (which is probably your local machine, but can be another machine) clone the web app:
 
-    $ git clone git@github.com:IntersectAustralia/hcsvlab.git
+    $ git clone git@github.com:Alveo/hcsvlab.git
     
 **Create a Gemset and Download Gems**
 
     $ cd projects/hcsvlab
-    $ rvm use 2.0.0-p0@hcsvlab --create
+    $ rvm use ruby-2.1.4@hcsvlab --create
     $ gem install bundler
     $ bundle
 
