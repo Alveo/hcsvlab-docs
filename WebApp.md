@@ -1,14 +1,94 @@
+## Alveo Web Application installation
+
 ### Background
 
-These instructions describe the process of installing and configuring the ALVEO (was HCSvLab) web application and it components on a CentOS machine
+These instructions describe the process of installing and configuring the Alveo (was HCSvLab) web application and its components on a CentOS machine.
 
 ### Assumptions
-* You have a fresh CentOS machine. 
-* You have a non-root user account on this machine with sudo privileges. We used "devel".
-* You are logged in as this user and are in the home directory.
-* You have a github account and have set up ssh keys (see https://help.github.com/articles/generating-ssh-keys )
 
-### Setup
+* You have a fresh CentOS 6 machine. 
+* You have a non-root user account on the machine with sudo privileges called 'devel'. It is helpful for devel to be able to sudo without a password (e.g. `usermod -a -G wheel devel && echo "%wheel ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/devel-sudo`) for this guide and also future Capistrano deployments.
+* You are logged in as this user and are in the home directory.
+* You have a GitHub account and have set up ssh keys (see https://help.github.com/articles/generating-ssh-keys)
+* You have a local installation of Ansible
+
+### Set up Ansible
+
+Check out a local copy of the Ansible scripts which will assist in automating the build.
+
+    $ git clone https://github.com/Alveo/alveo-ansible.git
+    $ cd alveo-ansible
+
+Now edit the various inventory files (`aepm/hosts-*`) according to your target hosts. Note: you can list the same machine under multiple roles, for example if you're building everything onto a single server.
+
+For the simplicity of the inventory file, we recommend you set up your local `~/.ssh/config` with each hosts' connectivity details like so:
+
+    Host my-alveo-host
+    HostName 192.0.2.1
+    User root
+    IdentityFile ~/.ssh/alveo.pem
+
+You can then use the host's alias in the inventory file, for example:
+
+    [alveo-pg]
+    my-alveo-host
+
+To test connectivity via Ansible, try running a simple remote command:
+
+    $ ansible all -i hosts-alveo-pg -m shell -b -a "uptime"
+
+### Run the Playbooks
+
+Assuming we have a working Ansible setup, we can now install services semi-automatically using the included playbooks.
+
+See also the [manual instructions](WebAppManual.md) for some components.
+
+#### Solr
+
+Optional: set Apache Tomcat credentials in the `secrets.yml` file under the `alveo-solr` Ansible role.
+
+    $ ansible-playbook -i hosts-alveo-solr site-alveo-solr.yml
+
+If installation is successful, you should be able to browse to Tomcat on port 8080 of your server. Click on the 'Manager' link and log in using the credentials found in `/usr/share/tomcat6/conf/tomcat-users.xml`.
+
+You should see a `/solr` application listed with an `hcsvlab-core` instance loaded.
+
+#### Sesame
+
+**Note:** running the Solr and Sesame playbooks on the same box currently results in two versions of Tomcat being installed (version 6 in `/usr/share/tomcat`; version 8 in `/opt/tomcat`). If you're planning on doing this, you will need to edit one instance's `conf/server.xml` after installation and de-conflict the three network ports it requires (8080, 8443 and 8010). Search for 'Connector port' and change them to 8081, 8444 and 8011 respectively (for example).
+
+Optional: set Apache Tomcat credentials in the `secrets.yml` file under the `alveo-sesame` Ansible role.
+
+    $ ansible-playbook -i hosts-alveo-sesame site-alveo-sesame.yml
+
+If installation is successful, you should be able to browse to Tomcat on port 8080 (or 8081, see above) of your server. Click on the 'Manager' link and log in using the credentials found in `/opt/tomcat/conf/tomcat-users.xml`.
+
+You should see `/openrdf-sesame` and `/openrdf-workbench` applications listed.
+
+#### Postgresql
+
+TODO - please follow the [manual instructions](Postgres.md)
+
+#### RabbitMQ
+
+Optional: set Apache Tomcat credentials in the `secrets.yml` file under the `alveo-rabbitmq` Ansible role.
+
+On the server
+
+    $ cd /home/devel
+    $ git clone https://github.com/Alveo/alveo-workers.git
+
+From your local ansible install
+
+    $ ansible-playbook -i hosts-alveo-rabbitmq site-alveo-rabbitmq.yml
+
+If installation is successful, you should see RabbitMQ in the process list and listening on port 5672 (see `netstat -ltnp`). You should also be able to log into the management web interface on port 15672.
+
+#### Galaxy
+
+TODO
+
+### Continue the setup
 
 **Correct directory permissions**
 
@@ -39,21 +119,30 @@ These are additional repositories that are not enabled by default but contain so
     $ sudo mkdir /var/log/httpd/old
     $ sudo chmod 700 /var/log/httpd/old
 
-**Setup Postgress**
+**Setup Postgres**
 
-Create a "hcsvlab" user and database in [Postgres](Postgres.md)
+See [Postgres setup](Postgres.md)
 
 **Install RVM and Ruby**
 
-RVM is a Ruby Version Manager, for more information see [rvm.io](http://rvm.io)
+On the web server, depending on what other playbooks you've run, [RVM](http://rvm.io) may already be installed. 
 
-    $ \curl -#L https://get.rvm.io | bash -s stable --ruby=2.0.0-p0
+If so:
+
+    $ sudo chown -cR devel: ~/.rvm
+    $ rvm install ruby-2.1.4
     $ source /home/devel/.rvm/scripts/rvm
-    $ rvm gemset create hcsvlab # this is the gemset cap deploy will use
+    $ rvm gemset create hcsvlab
+
+If not:
+
+    $ \curl -#L https://get.rvm.io | bash -s stable --ruby=2.1.4
+    $ source /home/devel/.rvm/scripts/rvm
+    $ rvm gemset create hcsvlab
 
 **Install Passenger**
 
-Passenger is an Apache2 module that serves Ruby on Rails applications. For more information see [Phusion Passanger](http://www.modrails.com/)
+Passenger is an Apache2 module that serves Ruby on Rails applications. For more information see [Phusion Passenger](http://www.modrails.com/)
 
 Install
 
@@ -172,26 +261,6 @@ ActiveMQ is the messaging component used by the system. For more informaiton see
     $ sudo ln -s /opt/apache-activemq-5.8.0 /opt/activemq
     $ sudo chown -R devel:devel /opt/activemq
 	
-**Install Tomcat**
-
-Tomcat is the serverlet container that runs SOLR and Sesame. Form more information see the [Apache Tomcat](http://tomcat.apache.org/) site.
-
-    $ curl -O http://apache.mirror.serversaustralia.com.au/tomcat/tomcat-6/v6.0.37/bin/apache-tomcat-6.0.37.tar.gz
-    $ tar -xvzf apache-tomcat-6.0.37.tar.gz
-    $ sudo mv apache-tomcat-6.0.37 /opt
-    $ sudo ln -s /opt/apache-tomcat-6.0.37 /opt/tomcat
-    $ sudo chown -R devel:devel /opt/tomcat
-	
-**Install Solr**
-
-Solr is the search engine platform used by the web application, for more information see the [Apache Solr](http://lucene.apache.org/solr/) site.
-
-Solr is installed during project deployment, but we must make a directory structure for it.
-
-    $ sudo mkdir -p /opt/solr/hcsvlab/solr/hcsvlab-core/conf
-    $ sudo mkdir -p /opt/solr/hcsvlab/solr/hcsvlab-AF-core/conf
-    $ sudo chown -R devel:devel /opt/solr
-
 ### Set the Environment Variables
 
 **On the Server**
