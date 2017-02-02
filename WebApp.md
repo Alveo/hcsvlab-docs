@@ -296,7 +296,7 @@ Deployment is done from another machine to the target server setup in the steps 
 
 **Install RVM on Deployment Machine**
 
-    $ \curl -#L https://get.rvm.io | bash -s stable --autolibs=3 --ruby=2.0.0-p0
+    $ \curl -#L https://get.rvm.io | bash -s stable --autolibs=3 --ruby=2.1.4
     $ source /home/devel/.rvm/scripts/rvm
 
 **Download the WebApp**
