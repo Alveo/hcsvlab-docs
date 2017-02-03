@@ -112,7 +112,7 @@ These are additional repositories that are not enabled by default but contain so
 
 **Install git and other useful packages**
 
-    $ sudo yum install gcc gcc-c++ patch readline readline-devel zlib zlib-devel libyaml-devel libffi-devel openssl openssl-devel make bzip2 autoconf automake libtool bison httpd httpd-devel apr-devel apr-util-devel mod_xsendfile ntp postgresql postgresql-libs postgresql-server postgresql-devel postfix curl curl-devel openssl openssl-devel tzdata libxml2 libxml2-devel libxslt libxslt-devel sqlite-devel git system-config-firewall-tui ImageMagick ImageMagick-devel mod_ssl
+    $ sudo yum install gcc gcc-c++ patch readline readline-devel zlib zlib-devel libyaml-devel libffi-devel openssl openssl-devel make bzip2 autoconf automake libtool bison httpd httpd-devel apr-devel apr-util-devel mod_xsendfile ntp postgresql postgresql-libs postgresql-server postgresql-devel postfix curl curl-devel openssl openssl-devel tzdata libxml2 libxml2-devel libxslt libxslt-devel sqlite-devel git system-config-firewall-tui ImageMagick ImageMagick-devel mod_ssl wget
 
 **Make directories to rotate Apache log files**
 
@@ -272,6 +272,13 @@ ActiveMQ is the messaging component used by the system. For more informaiton see
 
 **On the Server**
 
+Edit `.bashrc` and add the following:
+
+    export RAILS_ENV=YOUR_ENV # e.g. staging, production
+    export ACTIVEMQ_HOME=/opt/activemq
+    export CATALINA_HOME=/opt/tomcat
+    export SOLR_HOME=/opt/solr
+
 The following configuration files are in the Rails project config.
 
     hcsvlab / activemq_conf / activemq.xml      ---->  $ACTIVEMQ_HOME/conf/
@@ -281,14 +288,7 @@ The following configuration files are in the Rails project config.
             / solr_conf / hcsvlab               ---->  $SOLR_HOME/
                         / hcsvlab-solr.xml      ---->  $CATALINA_HOME/conf/Catalina/localhost/solr.xml
   
-They need to be copied to the specified locations. This is performed by Capistrano as part of the `full_deploy` task.
-
-Edit `.bashrc` and add the following:
-
-    export RAILS_ENV=production
-    export ACTIVEMQ_HOME=/opt/activemq
-    export CATALINA_HOME=/opt/tomcat
-    export SOLR_HOME=/opt/solr
+They need to be copied to the specified locations. This is performed by Capistrano as part of the `full_redeploy` task.
 
 ### Deployment
 
@@ -314,7 +314,7 @@ On your deployment machine (which is probably your local machine, but can be ano
 
 **Edit Configuration to Point to Target Server**
 
-Configure the following files to reference your server:
+Configure the following files to reference your server. The files should match your Rails environment name (e.g. staging, production).
 
     config/deploy/production.rb
       - role :web
@@ -332,20 +332,24 @@ Configure the following files if necessary:
     config/linguistics.yml
     config/solr.yml
 
-When you run `bundle exec cap production deploy:setup` in the next step, the files listed above will be copied from your deployment machine to a shared directory on the server at /home/devel/hcsvlab-web/shared/files in the same folder structure.
+When you run `bundle exec cap YOUR_ENV deploy:setup` in the next step, the files listed above will be copied from your deployment machine to a shared directory on the server at /home/devel/hcsvlab-web/shared/files in the same folder structure.
 
 If you update the configuration files on the server, you will have to restart the server for any changes to take effect.
 
 **Deploy**
 
-    $ bundle exec cap production deploy:setup
-    $ bundle exec cap production deploy:full_redeploy
-    $ bundle exec cap production deploy:create_solr_core
-    $ bundle exec cap production deploy:start_services
+    $ bundle exec cap YOUR_ENV deploy:setup
+    $ bundle exec cap YOUR_ENV deploy:full_redeploy
+    $ bundle exec cap YOUR_ENV deploy:create_solr_core # may not be required if you ran the solr ansible playbook
+    $ bundle exec cap YOUR_ENV deploy:configure_activemq
+    $ bundle exec cap YOUR_ENV deploy:start_activemq
+    $ bundle exec cap YOUR_ENV deploy:start_services
+    $ bundle exec cap YOUR_ENV deploy:migrate
+    $ bundle exec cap YOUR_ENV deploy:refresh_db
 
 If you ever need to redeploy, make sure you run the following command to stop the services (ActiveMQ, Tomcat, messaging pollers) first: 
 
-    $ bundle exec cap production deploy:stop_services
+    $ bundle exec cap YOUR_ENV deploy:stop_services
 
 ### Verifying the deployment, aka running the "Smoke Test" - This must be conducted for each release to Production
 
@@ -355,13 +359,13 @@ There are several steps to this, but together they exercise all key parts of the
 
 There is a script that is deployed with the web application that can be used to verify that the various processed of the deployment are running and configured to the correct port. To run the script, from the web application's directory type
     
-    $ bin/system_check.sh
+    $ script/system_check.sh
     
 The output should look like:
 
     Checking HCS vLab environment
 
-    Rails env= production
+    Rails env= YOUR_ENV
     Java Container url= http://localhost:8080/
     Web App url= http://localhost:80/
     Free disk space= 19G
