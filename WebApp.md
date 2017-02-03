@@ -1,14 +1,94 @@
+## Alveo Web Application installation
+
 ### Background
 
-These instructions describe the process of installing and configuring the ALVEO (was HCSvLab) web application and it components on a CentOS machine
+These instructions describe the process of installing and configuring the Alveo (was HCSvLab) web application and its components on a CentOS machine.
 
 ### Assumptions
-* You have a fresh CentOS machine. 
-* You have a non-root user account on this machine with sudo privileges. We used "devel".
-* You are logged in as this user and are in the home directory.
-* You have a github account and have set up ssh keys (see https://help.github.com/articles/generating-ssh-keys )
 
-### Setup
+* You have a fresh CentOS 6 machine. 
+* You have a non-root user account on the machine with sudo privileges called 'devel'. It is helpful for devel to be able to sudo without a password (e.g. `usermod -a -G wheel devel && echo "%wheel ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/devel-sudo`) both for this guide and future Capistrano deployments.
+* You are logged in as this user and are in the home directory.
+* You have a GitHub account and have set up ssh keys (see https://help.github.com/articles/generating-ssh-keys)
+* You have a local installation of Ansible
+
+### Set up Ansible
+
+Check out a local copy of the Ansible scripts which will assist in automating the build.
+
+    $ git clone https://github.com/Alveo/alveo-ansible.git
+    $ cd alveo-ansible
+
+Now edit the various inventory files (`aepm/hosts-*`) according to your target hosts. Note: you can list the same machine under multiple roles, for example if you're building everything onto a single server.
+
+For the simplicity of the inventory file, we recommend you set up your local `~/.ssh/config` with each hosts' connectivity details like so:
+
+    Host my-alveo-host
+    HostName 192.0.2.1
+    User root
+    IdentityFile ~/.ssh/alveo.pem
+
+You can then use the host's alias in the inventory file, for example:
+
+    [alveo-pg]
+    my-alveo-host
+
+To test connectivity via Ansible, try running a simple remote command:
+
+    $ ansible all -i hosts-alveo-pg -m shell -b -a "uptime"
+
+### Run the Playbooks
+
+Assuming we have a working Ansible setup, we can now install services semi-automatically using the included playbooks.
+
+See also the [manual instructions](WebAppManual.md) for some components.
+
+#### Solr
+
+Optional: set Apache Tomcat credentials in the `secrets.yml` file under the `alveo-solr` Ansible role.
+
+    $ ansible-playbook -i hosts-alveo-solr site-alveo-solr.yml
+
+If installation is successful, you should be able to browse to Tomcat on port 8080 of your server. Click on the 'Manager' link and log in using the credentials found in `/usr/share/tomcat6/conf/tomcat-users.xml`.
+
+You should see a `/solr` application listed with an `hcsvlab-core` instance loaded.
+
+#### Sesame
+
+**Note:** running the Solr and Sesame playbooks on the same box currently results in two versions of Tomcat being installed (version 6 in `/usr/share/tomcat`; version 8 in `/opt/tomcat`). If you're planning on doing this, you will need to edit one instance's `conf/server.xml` after installation and de-conflict the three network ports it requires (8080, 8443 and 8010). Search for 'Connector port' and change them to 8081, 8444 and 8011 respectively (for example).
+
+Optional: set Apache Tomcat credentials in the `secrets.yml` file under the `alveo-sesame` Ansible role.
+
+    $ ansible-playbook -i hosts-alveo-sesame site-alveo-sesame.yml
+
+If installation is successful, you should be able to browse to Tomcat on port 8080 (or 8081, see above) of your server. Click on the 'Manager' link and log in using the credentials found in `/opt/tomcat/conf/tomcat-users.xml`.
+
+You should see `/openrdf-sesame` and `/openrdf-workbench` applications listed.
+
+#### Postgresql
+
+TODO - please follow the [manual instructions](Postgres.md)
+
+#### RabbitMQ
+
+Optional: set Apache Tomcat credentials in the `secrets.yml` file under the `alveo-rabbitmq` Ansible role.
+
+On the server
+
+    $ cd /home/devel
+    $ git clone https://github.com/Alveo/alveo-workers.git
+
+From your local ansible install
+
+    $ ansible-playbook -i hosts-alveo-rabbitmq site-alveo-rabbitmq.yml
+
+If installation is successful, you should see RabbitMQ in the process list and listening on port 5672 (see `netstat -ltnp`). You should also be able to log into the management web interface on port 15672.
+
+#### Galaxy
+
+TODO
+
+### Continue the setup
 
 **Correct directory permissions**
 
@@ -32,37 +112,50 @@ These are additional repositories that are not enabled by default but contain so
 
 **Install git and other useful packages**
 
-    $ sudo yum install gcc gcc-c++ patch readline readline-devel zlib zlib-devel libyaml-devel libffi-devel openssl openssl-devel make bzip2 autoconf automake libtool bison httpd httpd-devel apr-devel apr-util-devel mod_xsendfile ntp postgresql postgresql-libs postgresql-server postgresql-devel postfix curl curl-devel openssl openssl-devel tzdata libxml2 libxml2-devel libxslt libxslt-devel sqlite-devel git system-config-firewall-tui ImageMagick ImageMagick-devel
+    $ sudo yum install gcc gcc-c++ patch readline readline-devel zlib zlib-devel libyaml-devel libffi-devel openssl openssl-devel make bzip2 autoconf automake libtool bison httpd httpd-devel apr-devel apr-util-devel mod_xsendfile ntp postgresql postgresql-libs postgresql-server postgresql-devel postfix curl curl-devel openssl openssl-devel tzdata libxml2 libxml2-devel libxslt libxslt-devel sqlite-devel git system-config-firewall-tui ImageMagick ImageMagick-devel mod_ssl wget
 
 **Make directories to rotate Apache log files**
 
     $ sudo mkdir /var/log/httpd/old
     $ sudo chmod 700 /var/log/httpd/old
 
-**Setup Postgress**
+**Setup Postgres**
 
-Create a "hcsvlab" user and database in [Postgres](Postgres.md)
+See [Postgres setup](Postgres.md)
 
 **Install RVM and Ruby**
 
-RVM is a Ruby Version Manager, for more information see [rvm.io](http://rvm.io)
+On the web server, depending on what playbooks you've run, [RVM](http://rvm.io) may already be installed. 
 
-    $ \curl -#L https://get.rvm.io | bash -s stable --ruby=2.0.0-p0
+If so:
+
+    $ sudo chown -cR devel: ~/.rvm
+    $ rvm install ruby-2.1.4
     $ source /home/devel/.rvm/scripts/rvm
-    $ rvm gemset create hcsvlab # this is the gemset cap deploy will use
+    $ rvm gemset create hcsvlab
+
+If not:
+
+    $ \curl -#L https://get.rvm.io | bash -s stable --ruby=2.1.4
+    $ source /home/devel/.rvm/scripts/rvm
+    $ rvm gemset create hcsvlab
 
 **Install Passenger**
 
-Passenger is an Apache2 module that serves Ruby on Rails applications. For more information see [Phusion Passanger](http://www.modrails.com/)
+Passenger is an Apache2 module that serves Ruby on Rails applications. For more information see [Phusion Passenger](http://www.modrails.com/)
 
 Install
 
-    $ gem install passenger
+    $ rvm use ruby-2.1.4
+    $ gem install rubygems-update
+    $ update_rubygems # for rack backwards compatibility
+    $ gem install rack -v=1.6.4
+    $ gem install passenger -v=5.0.10 --conservative
     $ passenger-install-apache2-module
     
 Configure
 
-> Note: The values for serverName and any file paths should specify values valid for your environment
+> Note: ensure your `ServerName` and any file paths (including Passenger versions) are valid for your environment.
 	
     $ sudo vi /etc/httpd/conf.d/hcsvlab.conf
     ...
@@ -70,16 +163,20 @@ Configure
     Listen 443
     
     <VirtualHost *:80>
-            ServerName ic2-hcsvlab-qa2-vm.intersect.org.au
-            Redirect permanent / https://ic2-hcsvlab-qa2-vm.intersect.org.au/
+            ServerName alveo.example.com
+            Redirect permanent / https://alveo.example.com/
     </VirtualHost>
     
     <VirtualHost *:443>
-        ServerName ic2-hcsvlab-qa2-vm.intersect.org.au
+        ServerName alveo.example.com
         DocumentRoot /home/devel/hcsvlab-web/current/public
-        LoadModule passenger_module /home/devel/.rvm/gems/ruby-2.0.0-p0/gems/passenger-4.0.5/libout/apache2/mod_passeng$
-        PassengerRoot /home/devel/.rvm/gems/ruby-2.0.0-p0/gems/passenger-4.0.5
-        PassengerDefaultRuby /home/devel/.rvm/wrappers/ruby-2.0.0-p0/ruby
+
+        LoadModule passenger_module /home/devel/.rvm/gems/ruby-2.1.4/gems/passenger-5.0.10/buildout/apache2/mod_passenger.so
+        <IfModule mod_passenger.c>
+            PassengerRoot /home/devel/.rvm/gems/ruby-2.1.4/gems/passenger-5.0.10
+            PassengerDefaultRuby /home/devel/.rvm/gems/ruby-2.1.4/wrappers/ruby
+        </IfModule>
+
         RailsEnv qa2
 
         SSLEngine on
@@ -114,7 +211,7 @@ Be sure to place proper SSL cerificates into /etc/httpd/ssl
 
 **Open Ports for the Web Services**
 
-Edit `iptables` to open up port 80, and optionally 8080 for Tomcat (see below):
+Edit `iptables` to open up the web ports, optionally including 8080 for Tomcat (see below):
 
     $ sudo vi /etc/sysconfig/iptables
 	
@@ -122,6 +219,7 @@ Add the lines:
 
     -A INPUT -m state --state NEW -m tcp -p tcp --dport 80 -j ACCEPT
     -A INPUT -m state --state NEW -m tcp -p tcp --dport 8080 -j ACCEPT
+    -A INPUT -m state --state NEW -m tcp -p tcp --dport 443 -j ACCEPT
 
 right after this line:
 
@@ -136,28 +234,26 @@ Restart Apache -- won't work without Passenger installed
     $ sudo chkconfig --level 345 httpd on
     $ sudo service httpd restart
 
-**Make a directory for the app (capistrano needs this)**
+**Make a directory for the app (Capistrano needs this)**
 
-    $ mkdir ~/hcsvlab-web
-    $ mkdir ~/hcsvlab-web/releases
+    $ mkdir -p ~/hcsvlab-web/releases
 
 **Install Java**
 
-Download JDK 6 update 45 from Oracle.
+    $ yum install jdk1.8.0_74 # or similar
 
-[jdk-6u45-linux-x64-rpm.bin](http://www.oracle.com/technetwork/java/javase/downloads/jdk6downloads-1902814.html)
+Alternatively, download the [Oracle JDK](http://www.oracle.com/technetwork/java/javase/downloads/index.html). At the time of writing, the version was 8u121. This requires clicking a license agreement, so you will have to download it to your local machine, then scp it to your target machine.
 
-This requires clicking a license agreement, so you will have to download it to your local machine, then scp it to your target machine.
+For example:
 
-    $ scp jdk-6u45-linux-x64-rpm.bin devel@ic2-hcsvlab-qa2-vm.intersect.org.au:~/downloads
-    $ ssh devel@ic2-hcsvlab-qa2-vm.intersect.org.au
+    $ scp jdk-6u45-linux-x64-rpm.bin devel@example.com:
+    $ ssh devel@example.com
     ...
-    $ cd downloads
-    $ chmod +x jdk-6u45-linux-x64-rpm.bin
-    $ sudo ./jdk-6u45-linux-x64-rpm.bin
-    $ sudo alternatives --install /usr/bin/java java /usr/java/jdk1.6.0_45/jre/bin/java 20000
-    $ sudo alternatives --install /usr/bin/javac javac /usr/java/jdk1.6.0_45/bin/javac 20000
-    $ sudo alternatives --install /usr/bin/jar jar /usr/java/jdk1.6.0_45/bin/jar 20000
+    $ sudo rpm -i jdk-8u74-linux-x64.rpm
+
+    $ sudo alternatives --install /usr/bin/java java /usr/java/jdk1.8.0_74/jre/bin/java 20000
+    $ sudo alternatives --install /usr/bin/javac javac /usr/java/jdk1.8.0_74/bin/javac 20000
+    $ sudo alternatives --install /usr/bin/jar jar /usr/java/jdk1.8.0_74/bin/jar 20000
     $ sudo alternatives --config java
     $ sudo alternatives --config javac
     $ sudo alternatives --config jar
@@ -166,35 +262,22 @@ This requires clicking a license agreement, so you will have to download it to y
 
 ActiveMQ is the messaging component used by the system. For more informaiton see the [Apache ActiveMQ](http://activemq.apache.org/) site.
 
-    $ wget http://mirror.ventraip.net.au/apache/activemq/apache-activemq/5.8.0/apache-activemq-5.8.0-bin.tar.gz
+    $ wget http://archive.apache.org/dist/activemq/apache-activemq/5.8.0/apache-activemq-5.8.0-bin.tar.gz
     $ tar -xvzf apache-activemq-5.8.0-bin.tar.gz
     $ sudo mv apache-activemq-5.8.0 /opt
     $ sudo ln -s /opt/apache-activemq-5.8.0 /opt/activemq
     $ sudo chown -R devel:devel /opt/activemq
 	
-**Install Tomcat**
-
-Tomcat is the serverlet container that runs SOLR and Sesame. Form more information see the [Apache Tomcat](http://tomcat.apache.org/) site.
-
-    $ curl -O http://apache.mirror.serversaustralia.com.au/tomcat/tomcat-6/v6.0.37/bin/apache-tomcat-6.0.37.tar.gz
-    $ tar -xvzf apache-tomcat-6.0.37.tar.gz
-    $ sudo mv apache-tomcat-6.0.37 /opt
-    $ sudo ln -s /opt/apache-tomcat-6.0.37 /opt/tomcat
-    $ sudo chown -R devel:devel /opt/tomcat
-	
-**Install Solr**
-
-Solr is the search engine platform used by the web application, for more information see the [Apache Solr](http://lucene.apache.org/solr/) site.
-
-Solr is installed during project deployment, but we must make a directory structure for it.
-
-    $ sudo mkdir -p /opt/solr/hcsvlab/solr/hcsvlab-core/conf
-    $ sudo mkdir -p /opt/solr/hcsvlab/solr/hcsvlab-AF-core/conf
-    $ sudo chown -R devel:devel /opt/solr
-
 ### Set the Environment Variables
 
 **On the Server**
+
+Edit `.bashrc` and add the following:
+
+    export RAILS_ENV=YOUR_ENV # e.g. staging, production
+    export ACTIVEMQ_HOME=/opt/activemq
+    export CATALINA_HOME=/opt/tomcat
+    export SOLR_HOME=/opt/solr
 
 The following configuration files are in the Rails project config.
 
@@ -205,14 +288,7 @@ The following configuration files are in the Rails project config.
             / solr_conf / hcsvlab               ---->  $SOLR_HOME/
                         / hcsvlab-solr.xml      ---->  $CATALINA_HOME/conf/Catalina/localhost/solr.xml
   
-They need to be copied to the specified locations. This is performed by Capistrano as part of the `full_deploy` task.
-
-Edit `.bashrc` and add the following:
-
-    export RAILS_ENV=production
-    export ACTIVEMQ_HOME=/opt/activemq
-    export CATALINA_HOME=/opt/tomcat
-    export SOLR_HOME=/opt/solr
+They need to be copied to the specified locations. This is performed by Capistrano as part of the `full_redeploy` task.
 
 ### Deployment
 
@@ -220,25 +296,25 @@ Deployment is done from another machine to the target server setup in the steps 
 
 **Install RVM on Deployment Machine**
 
-    $ \curl -#L https://get.rvm.io | bash -s stable --autolibs=3 --ruby=2.0.0-p0
+    $ \curl -#L https://get.rvm.io | bash -s stable --autolibs=3 --ruby=2.1.4
     $ source /home/devel/.rvm/scripts/rvm
 
 **Download the WebApp**
 
 On your deployment machine (which is probably your local machine, but can be another machine) clone the web app:
 
-    $ git clone git@github.com:IntersectAustralia/hcsvlab.git
+    $ git clone git@github.com:Alveo/hcsvlab.git
     
 **Create a Gemset and Download Gems**
 
     $ cd projects/hcsvlab
-    $ rvm use 2.0.0-p0@hcsvlab --create
+    $ rvm use ruby-2.1.4@hcsvlab --create
     $ gem install bundler
     $ bundle
 
 **Edit Configuration to Point to Target Server**
 
-Configure the following files to reference your server:
+Configure the following files to reference your server. The files should match your Rails environment name (e.g. staging, production).
 
     config/deploy/production.rb
       - role :web
@@ -256,20 +332,24 @@ Configure the following files if necessary:
     config/linguistics.yml
     config/solr.yml
 
-When you run `bundle exec cap production deploy:setup` in the next step, the files listed above will be copied from your deployment machine to a shared directory on the server at /home/devel/hcsvlab-web/shared/files in the same folder structure.
+When you run `bundle exec cap YOUR_ENV deploy:setup` in the next step, the files listed above will be copied from your deployment machine to a shared directory on the server at /home/devel/hcsvlab-web/shared/files in the same folder structure.
 
 If you update the configuration files on the server, you will have to restart the server for any changes to take effect.
 
 **Deploy**
 
-    $ bundle exec cap production deploy:setup
-    $ bundle exec cap production deploy:full_redeploy
-    $ bundle exec cap production deploy:create_solr_core
-    $ bundle exec cap production deploy:start_services
+    $ bundle exec cap YOUR_ENV deploy:setup
+    $ bundle exec cap YOUR_ENV deploy:full_redeploy
+    $ bundle exec cap YOUR_ENV deploy:create_solr_core # may not be required if you ran the solr ansible playbook
+    $ bundle exec cap YOUR_ENV deploy:configure_activemq
+    $ bundle exec cap YOUR_ENV deploy:start_activemq
+    $ bundle exec cap YOUR_ENV deploy:start_services
+    $ bundle exec cap YOUR_ENV deploy:migrate
+    $ bundle exec cap YOUR_ENV deploy:refresh_db
 
 If you ever need to redeploy, make sure you run the following command to stop the services (ActiveMQ, Tomcat, messaging pollers) first: 
 
-    $ bundle exec cap production deploy:stop_services
+    $ bundle exec cap YOUR_ENV deploy:stop_services
 
 ### Verifying the deployment, aka running the "Smoke Test" - This must be conducted for each release to Production
 
@@ -279,13 +359,13 @@ There are several steps to this, but together they exercise all key parts of the
 
 There is a script that is deployed with the web application that can be used to verify that the various processed of the deployment are running and configured to the correct port. To run the script, from the web application's directory type
     
-    $ bin/system_check.sh
+    $ script/system_check.sh
     
 The output should look like:
 
     Checking HCS vLab environment
 
-    Rails env= production
+    Rails env= YOUR_ENV
     Java Container url= http://localhost:8080/
     Web App url= http://localhost:80/
     Free disk space= 19G
