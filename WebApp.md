@@ -55,7 +55,7 @@ You should see a `/solr` application listed with an `hcsvlab-core` instance load
 
 #### Sesame
 
-**Note:** running the Solr and Sesame playbooks on the same box currently results in two versions of Tomcat being installed (version 6 in `/usr/share/tomcat`; version 8 in `/opt/tomcat`). If you're planning on doing this, you will need to edit one instance's `conf/server.xml` after installation and de-conflict the three network ports it requires (8080, 8443 and 8010). Search for 'Connector port' and change them to 8081, 8444 and 8011 respectively (for example).
+**Note:** running the Solr and Sesame playbooks to the same target currently results in two versions of Tomcat being installed (version 6 in `/usr/share/tomcat` and version 8 in `/opt/tomcat`). If you're planning on doing this, you will need to edit one instance's `conf/server.xml` after installation and de-conflict its three critical network ports (by default 8005, 8080 8010). For example, change them to 8006, 8081 and 8011 respectively and restart Tomcat. If you're installing Solr and Sesame on different hosts, this is not required.
 
 Optional: set Apache Tomcat credentials in the `secrets.yml` file under the `alveo-sesame` Ansible role.
 
