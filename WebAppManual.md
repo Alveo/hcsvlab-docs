@@ -14,11 +14,7 @@ Tomcat is the serverlet container that runs SOLR and Sesame. Form more informati
 	
 **Install Solr**
 
-Solr is the search engine platform used by the web application, for more information see the [Apache Solr](http://lucene.apache.org/solr/) site.
-
-    $ ansible-playbook -i hosts-alveo-solr site-alveo-solr.yml
-
-Solr is installed during project deployment, but we must make a directory structure for it.
+Solr is the search engine platform used by the web application, for more information see the [Apache Solr](http://lucene.apache.org/solr/) site. Solr is installed during project deployment, but we must make a directory structure for it.
 
     $ sudo mkdir -p /opt/solr/hcsvlab/solr/hcsvlab-core/conf
     $ sudo mkdir -p /opt/solr/hcsvlab/solr/hcsvlab-AF-core/conf
