@@ -3,6 +3,7 @@ This contains install and other technical documentation for the HCSvLab project.
 Installation Instructions:
 * [Galaxy](GalaxyCloudman.md)
 * [Web Application](WebApp.md)
+* [Alveo Workers](Workers.md)
 * [RoboChef Setup](RoboChefSetup.md)
 
 Development Environment Setup:
