@@ -2,28 +2,29 @@
 
 1. [Developer Setup - Virtual Environment](#developer-setup---virtual-environment)
 1. [Developer Setup - Web App](#developer-setup---web-app)
-1. [Install PhantomJS](#install-phantomjs)
-1. [Install Postgres](#install-postgres)
-1. [Create Database User](#create-database-user)
-1. [Clone HCSVLab](#clone-hcsvlab)
-1. [Install ImageMagick \(required for the rmagick gem\)](#install-imagemagick-required-for-the-rmagick-gem)
-1. [Install ActiveMQ](#install-activemq)
-1. [Setup HCSVLAB](#setup-hcsvlab)
-1. [Setup Data Directory](#setup-data-directory)
-1. [Setup database for running tests](#setup-database-for-running-tests)
-1. [Run Tests](#run-tests)
-1. [Setup https for AAF](#setup-https-for-aaf)
-1. [Ingest an AusNC Corpus into Fedora](#ingest-an-ausnc-corpus-into-fedora)
-1. [Ingest a single AusNC Corpus Item into Fedora](#ingest-a-single-ausnc-corpus-item-into-fedora)
-1. [Clear all corpora from Fedora](#clear-all-corpora-from-fedora)
+    1. [Install PhantomJS](#install-phantomjs)
+    1. [Install Postgres](#install-postgres)
+        1. [Create Database User](#create-database-user)
+    1. [HCSvLab Development Environment Setup](#hcsvlab-development-environment-setup)
+        1. [ImageMagick \(required for the rmagick gem\)](#imagemagick-required-for-the-rmagick-gem)
+        1. [ActiveMQ](#activemq)
+        1. [Triplestores setup](#triplestores-setup)
+        1. [HCSvLab startup](#hcsvlab-startup)
+        1. [Data Directory](#data-directory)
+        1. [Setup database for running tests](#setup-database-for-running-tests)
+    1. [Run Tests](#run-tests)
+    1. [Setup https for AAF](#setup-https-for-aaf)
+    1. [Ingest an AusNC Corpus into Fedora \(deprecated\)](#ingest-an-ausnc-corpus-into-fedora-deprecated)
+    1. [Ingest a single AusNC Corpus Item into Fedora \(deprecated\)](#ingest-a-single-ausnc-corpus-item-into-fedora-deprecated)
+    1. [Clear all corpora from Fedora \(deprecated\)](#clear-all-corpora-from-fedora-deprecated)
 
 <!-- /MarkdownTOC -->
 
 
 <a name="developer-setup---virtual-environment"></a>
-### Developer Setup - Virtual Environment
+# Developer Setup - Virtual Environment
 
-The HCSVLAB web app developer installation instructions assume an OSX or Ubuntu environment. To set up an Ubuntu virtual machine run through the following steps. If planning to use an OSX environment ignore this section and continue at the Developer Setup - Web App section.
+The HCSvLab web app developer installation instructions assume an OSX or Ubuntu environment. To set up an Ubuntu virtual machine run through the following steps. If planning to use an OSX environment ignore this section and continue at the Developer Setup - Web App section.
 
 **Install Virtualbox**
 
@@ -36,11 +37,11 @@ An Ubuntu image will need to be provided to virtual box for it to be able to ins
 
 **Create a new Virtual Machine**
 
-Once the Ubuntu image is downloaded open Virtualbox and click to create a new vm. Give it some appropriate name such as HCSVLab, set its type to "Linux" and version to "Ubuntu (64-bit)". Allocate the VM at least 2048 mb of RAM, and use the default options to create a dynamically allocated physical hard disk.
+Once the Ubuntu image is downloaded open Virtualbox and click to create a new vm. Give it some appropriate name such as HCSvLab, set its type to "Linux" and version to "Ubuntu (64-bit)". Allocate the VM at least 2048 mb of RAM, and use the default options to create a dynamically allocated physical hard disk.
 
 Configure the settings of the VM within Virtualbox to have two network adapters. The first should be a bridged adapter and the second a Host-only adapter. This will allow the vm to access the internet and allow ssh'ing into the vm from the host machine.
 
-To make development easier it is handy to clone the HCSVLAB repository onto the host machine (desktop) and set up a shared drive to the cloned repo. This allows code changes to be made to the cloned repo within the desktop and still have the changes take effect within the vm. When creating the shared drive ensure to enable the settings "Make permanent" and "Auto mount".
+To make development easier it is handy to clone the HCSvLab repository onto the host machine (desktop) and set up a shared drive to the cloned repo. This allows code changes to be made to the cloned repo within the desktop and still have the changes take effect within the vm. When creating the shared drive ensure to enable the settings "Make permanent" and "Auto mount".
 
 Once the virtual machine has been created start it up and select the downloaded Ubuntu image file when prompted for a virtual disk. Run through the Ubuntu setup, making sure to give the user a memorable name and password ("devel" is normally used as it aligns with our server environments). Once setup is complete and you have logged in install guest additions onto the vm by clicking "Devices > Insert Guest Additions CD Image" within the Virtualbox menu toolbar and follow the instructions within the VM. Once guest additions are installed add your Ubuntu user to the vboxsf group so that they can access the shared folder:
 
@@ -49,9 +50,9 @@ Once the virtual machine has been created start it up and select the downloaded 
 After logging out and in again you should be able to access the shared folder at "/media/sf_<shared folder name>". Setup of the Ubuntu virtual machine should now be complete. 
 
 <a name="developer-setup---web-app"></a>
-### Developer Setup - Web App
+# Developer Setup - Web App
 <a name="install-phantomjs"></a>
-### Install PhantomJS
+## Install PhantomJS
 For more info, visit: http://phantomjs.org/download.html
 
 **In Ubuntu**
@@ -69,7 +70,7 @@ For more info, visit: http://phantomjs.org/download.html
 Unfortunately, installing with MacPorts is not recommended.
 
 <a name="install-postgres"></a>
-### Install Postgres
+## Install Postgres
 **In Ubuntu**
 
     $ sudo apt-get install postgresql libpq-dev # install postgresql and libpq-dev packages
@@ -108,9 +109,9 @@ If you already have a "postgres" user you may get the following error `$ createu
 
     $ createuser -sP hcsvlab # create superuser and prompt for password
 
-<a name="clone-hcsvlab"></a>
-###Clone HCSVLab
-If Ruby Version Manager is not already installed on the development environment follow the instructions at https://rvm.io/rvm/install
+<a name="hcsvlab-development-environment-setup"></a>
+##HCSvLab Development Environment Setup
+If Ruby Version Manager (rvm) is not already installed on the development environment please follow the <a href="https://rvm.io/rvm/install" target="_blank">official instructions</a> to install it. 
 
 **In Ubuntu and Mac OS X**
 
@@ -119,8 +120,8 @@ If Ruby Version Manager is not already installed on the development environment 
     $ gem install bundler
     $ git clone git@github.com:IntersectAustralia/hcsvlab.git
 
-<a name="install-imagemagick-required-for-the-rmagick-gem"></a>
-###Install ImageMagick (required for the rmagick gem)
+<a name="imagemagick-required-for-the-rmagick-gem"></a>
+### ImageMagick (required for the rmagick gem)
 **In Ubuntu**
 
     $ sudo apt-get install imagemagick
@@ -129,13 +130,13 @@ If Ruby Version Manager is not already installed on the development environment 
 
     $ brew install imagemagick
 
-<a name="install-activemq"></a>
-###Install ActiveMQ
+<a name="activemq"></a>
+### ActiveMQ
 **In Ubuntu and Mac OS X**
 
     $ curl http://archive.apache.org/dist/activemq/apache-activemq/5.8.0/apache-activemq-5.8.0-bin.tar.gz | tar xvz
  
-***#set configuration, using provided file from HCSVLab project***
+***#set configuration, using provided file from HCSvLab project***
 
     $ cd apache-activemq-5.8.0
     $ cp <hcsvlab folder>/activemq_conf/activemq.xml conf/activemq.xml
@@ -143,10 +144,10 @@ If Ruby Version Manager is not already installed on the development environment 
 
 If running `$ bin/activemq start` in Ubuntu results in an error message `ERROR: Configuration variable JAVA_HOME or JAVACMD is not defined correctly.`, then it is likely that no Java Runtime Environment is installed. If `$ java -version` doesn't list an installed java version, then install the latest version of the JRE using `$ sudo apt-get install default-jre`.
 
-Make sure ActiveMQ is running while HCSvLAB is up.
+Make sure ActiveMQ is running while HCSvLab is up.
 
-<a name="setup-hcsvlab"></a>
-###Setup HCSVLAB
+<a name="triplestores-setup"></a>
+###Triplestores setup
 
 **development env**
 
@@ -162,7 +163,8 @@ development:
 development:
     url: http://localhost:8983/solr/development
 ```
-
+<a name="hcsvlab-startup"></a>
+### HCSvLab startup
 **For Ubuntu and Mac OS X**
 
 - For first time run
@@ -191,8 +193,8 @@ If running `$ bundle install` results in the following error, then try installin
 
     .../kernel_require.rb:54:in `require': cannot load such file -- bundler (LoadError)
 
-<a name="setup-data-directory"></a>
-###Setup Data Directory
+<a name="data-directory"></a>
+### Data Directory
 **For Ubuntu and Mac OS X**
 
     $ mkdir -p /data/contributed_annotations
@@ -205,17 +207,17 @@ If running `$ bundle install` results in the following error, then try installin
     $ RAILS_ENV=test bundle exec rake db:create db:migrate db:test:prepare
 
 <a name="run-tests"></a>
-###Run Tests
+##Run Tests
 **For Ubuntu and Mac OS X**
 
     $ cd ~/hcsvlab
     $ rspec spec
     $ cucumber features
 
-Make sure all necessary backgroud services (ActiveMQ/start_pollers) are up during test, otherwise some tests would fail.   
+Make sure all necessary backend services (ActiveMQ/start_pollers) are up during test, otherwise some tests would fail.   
 
 <a name="setup-https-for-aaf"></a>
-###Setup https for AAF
+##Setup https for AAF
 **For Mac OS X**
 
 For testing purpose, please register your application [here](https://rapid.test.aaf.edu.au/registration), it will ask you to login through aaf. Please select idptest.intersect.org.au
@@ -308,20 +310,20 @@ Then restart apace
 
     sudo apachectl -k restart
 
-<a name="ingest-an-ausnc-corpus-into-fedora"></a>
-###Ingest an AusNC Corpus into Fedora
+<a name="ingest-an-ausnc-corpus-into-fedora-deprecated"></a>
+##Ingest an AusNC Corpus into Fedora (deprecated)
 For example data, see Download the Corpus in Installing AusNC.
 
 After that, refer to https://github.com/IntersectAustralia/hcsvlab_robochef#installation for more instructions.
 
     $ rake fedora:ingest corpus=/path/to/corpus/directory
 
-<a name="ingest-a-single-ausnc-corpus-item-into-fedora"></a>
-###Ingest a single AusNC Corpus Item into Fedora
+<a name="ingest-a-single-ausnc-corpus-item-into-fedora-deprecated"></a>
+##Ingest a single AusNC Corpus Item into Fedora (deprecated)
 
     $ rake fedora:ingest_one /path/to/corpus/rdf/file
 
-<a name="clear-all-corpora-from-fedora"></a>
-###Clear all corpora from Fedora
+<a name="clear-all-corpora-from-fedora-deprecated"></a>
+##Clear all corpora from Fedora (deprecated)
 
     $ rake fedora:clear
