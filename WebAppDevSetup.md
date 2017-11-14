@@ -118,7 +118,7 @@ If Ruby Version Manager (rvm) is not already installed on the development enviro
     $ rvm install ruby-2.1.4
     $ rvm use ruby-2.1.4@hcsvlab \--create
     $ gem install bundler
-    $ git clone git@github.com:IntersectAustralia/hcsvlab.git
+    $ git clone git@github.com:Alveo/hcsvlab.git
 
 <a name="imagemagick-required-for-the-rmagick-gem"></a>
 ### ImageMagick (required for the rmagick gem)
@@ -144,7 +144,7 @@ If Ruby Version Manager (rvm) is not already installed on the development enviro
 
 If running `$ bin/activemq start` in Ubuntu results in an error message `ERROR: Configuration variable JAVA_HOME or JAVACMD is not defined correctly.`, then it is likely that no Java Runtime Environment is installed. If `$ java -version` doesn't list an installed java version, then install the latest version of the JRE using `$ sudo apt-get install default-jre`.
 
-Make sure ActiveMQ is running while HCSvLab is up.
+** Make sure ActiveMQ is running while HCSvLab is up. **
 
 <a name="triplestores-setup"></a>
 ###Triplestores setup
@@ -174,14 +174,15 @@ $ git submodule init
 $ git submodule update
 $ bundle install
 $ rake db:create db:migrate db:seed db:populate
+$ RAILS_ENV=test rake db:migrate
 $ rake jetty:reset_all 
 ```
 
 - For subsequent run
 ```
 $ RAILS_ENV=development
-$ rake jetty:start a13g:start_pollers 
 $ apache-activemq-5.8.0/bin/activemq start 
+$ rake jetty:start a13g:start_pollers
 $ rails s
 ```
 
@@ -198,13 +199,16 @@ If running `$ bundle install` results in the following error, then try installin
 **For Ubuntu and Mac OS X**
 
     $ mkdir -p /data/contributed_annotations
+    $ mkdir -p /data/contrib
+    $ mkdir -p /data/collections
+    $ mkdir -p /data/hcsvlab_download
     $ chown -R <user>:<user> /data
 
 <a name="setup-database-for-running-tests"></a>
 ###Setup database for running tests
 **For Ubuntu and Mac OS X**
 
-    $ RAILS_ENV=test bundle exec rake db:create db:migrate db:test:prepare
+    $ RAILS_ENV=development bundle exec rake db:create db:migrate db:test:prepare
 
 <a name="run-tests"></a>
 ##Run Tests
