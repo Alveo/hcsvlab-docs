@@ -6,6 +6,8 @@
     1. [Install Postgres](#install-postgres)
         1. [Create Database User](#create-database-user)
     1. [HCSvLab Development Environment Setup](#hcsvlab-development-environment-setup)
+        1. [JAVA](#java)
+        1. [Ruby](#ruby)
         1. [ImageMagick \(required for the rmagick gem\)](#imagemagick-required-for-the-rmagick-gem)
         1. [ActiveMQ](#activemq)
         1. [Triplestores setup](#triplestores-setup)
@@ -22,6 +24,7 @@
 
 
 <a name="developer-setup---virtual-environment"></a>
+<a id="developer-setup---virtual-environment"></a>
 # Developer Setup - Virtual Environment
 
 The HCSvLab web app developer installation instructions assume an OSX or Ubuntu environment. To set up an Ubuntu virtual machine run through the following steps. If planning to use an OSX environment ignore this section and continue at the Developer Setup - Web App section.
@@ -50,8 +53,10 @@ Once the virtual machine has been created start it up and select the downloaded 
 After logging out and in again you should be able to access the shared folder at "/media/sf_<shared folder name>". Setup of the Ubuntu virtual machine should now be complete. 
 
 <a name="developer-setup---web-app"></a>
+<a id="developer-setup---web-app"></a>
 # Developer Setup - Web App
 <a name="install-phantomjs"></a>
+<a id="install-phantomjs"></a>
 ## Install PhantomJS
 For more info, visit: http://phantomjs.org/download.html
 
@@ -70,6 +75,7 @@ For more info, visit: http://phantomjs.org/download.html
 Unfortunately, installing with MacPorts is not recommended.
 
 <a name="install-postgres"></a>
+<a id="install-postgres"></a>
 ## Install Postgres
 **In Ubuntu**
 
@@ -84,13 +90,14 @@ The easiest way to set up Postgres on Mac OS X is to download from http://postgr
 
 **After installation**
 
-1. Run `echo 'export PATH=$PATH:/Applications/Postgres.app/Contents/Versions/latest/bin' > ~/.bash_profile` in the terminal. This will give you access to the command line tools.
+1. Run `echo 'export PATH=$PATH:/Applications/Postgres.app/Contents/Versions/latest/bin' >> ~/.bash_profile` in the terminal. This will give you access to the command line tools.
 2. Open Postgres.app from Applications. You should see an elephant icon on the menu bar.
 3. Left click on the elephant icon and go the Preferences
 4. Uncheck "Show Welcome Window..."
 5. Check "Start Postgres automatically after login"
 
 <a name="create-database-user"></a>
+<a id="create-database-user"></a>
 ###Create Database User
 **In Ubuntu**
 
@@ -110,17 +117,35 @@ If you already have a "postgres" user you may get the following error `$ createu
     $ createuser -sP hcsvlab # create superuser and prompt for password
 
 <a name="hcsvlab-development-environment-setup"></a>
+<a id="hcsvlab-development-environment-setup"></a>
 ##HCSvLab Development Environment Setup
+
+<a id="java"></a>
+### JAVA
+
+Use brew to install java8 in Mac OS X
+
+    $ brew update
+    $ brew tap caskroom/versions
+    $ brew cask install java8
+
+<a id="ruby"></a>
+### Ruby
+
 If Ruby Version Manager (rvm) is not already installed on the development environment please follow the <a href="https://rvm.io/rvm/install" target="_blank">official instructions</a> to install it. 
 
 **In Ubuntu and Mac OS X**
 
     $ rvm install ruby-2.1.4
     $ rvm use ruby-2.1.4@hcsvlab \--create
-    $ gem install bundler
     $ git clone git@github.com:Alveo/hcsvlab.git
+    $ gem install bundler
+    $ gem install therubyracer -v '0.12.1'
+    $ gem install libv8 -v '3.16.14.7' -- --with-system-v8
+    $ bundle install 
 
 <a name="imagemagick-required-for-the-rmagick-gem"></a>
+<a id="imagemagick-required-for-the-rmagick-gem"></a>
 ### ImageMagick (required for the rmagick gem)
 **In Ubuntu**
 
@@ -131,22 +156,23 @@ If Ruby Version Manager (rvm) is not already installed on the development enviro
     $ brew install imagemagick
 
 <a name="activemq"></a>
+<a id="activemq"></a>
 ### ActiveMQ
 **In Ubuntu and Mac OS X**
 
     $ curl http://archive.apache.org/dist/activemq/apache-activemq/5.8.0/apache-activemq-5.8.0-bin.tar.gz | tar xvz
  
-***#set configuration, using provided file from HCSvLab project***
+***set configuration, using provided file from HCSvLab project***
 
     $ cd apache-activemq-5.8.0
     $ cp <hcsvlab folder>/activemq_conf/activemq.xml conf/activemq.xml
-    $ bin/activemq start
 
 If running `$ bin/activemq start` in Ubuntu results in an error message `ERROR: Configuration variable JAVA_HOME or JAVACMD is not defined correctly.`, then it is likely that no Java Runtime Environment is installed. If `$ java -version` doesn't list an installed java version, then install the latest version of the JRE using `$ sudo apt-get install default-jre`.
 
 ** Make sure ActiveMQ is running while HCSvLab is up. **
 
 <a name="triplestores-setup"></a>
+<a id="triplestores-setup"></a>
 ###Triplestores setup
 
 **development env**
@@ -164,15 +190,15 @@ development:
     url: http://localhost:8983/solr/development
 ```
 <a name="hcsvlab-startup"></a>
+<a id="hcsvlab-startup"></a>
 ### HCSvLab startup
 **For Ubuntu and Mac OS X**
 
-- For first time run
+- For first time run to initialise
 ```
 $ cd ~/hcsvlab
 $ git submodule init
 $ git submodule update
-$ bundle install
 $ rake db:create db:migrate db:seed db:populate
 $ RAILS_ENV=test rake db:migrate
 $ rake jetty:reset_all 
@@ -180,21 +206,26 @@ $ rake jetty:reset_all
 
 - For subsequent run
 ```
+$ export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
 $ RAILS_ENV=development
+$ apache-activemq-5.8.0/bin/activemq stop 
 $ apache-activemq-5.8.0/bin/activemq start 
 $ rake jetty:start a13g:start_pollers
 $ rails s
 ```
 
+If you use macOs High Sierra you need to check this to make sure solr worker works:
+
+<a href="https://blog.phusion.nl/2017/10/13/why-ruby-app-servers-break-on-macos-high-sierra-and-what-can-be-done-about-it/" target="_blank">Why Ruby app servers break on macOS High Sierra and what can be done about it</a>
+
+
 As mentioned in the calls above, `$ rake jetty:reset_all` should be run the first time when setting up HCSVLAB. It can also be used to reset Solr and Sesame when required.
 
 To check that the required processes are running, the script `/hcsvlab/script/system_check.sh` can be run.
 
-If running `$ bundle install` results in the following error, then try installing the bundler gem `$ gem install bundler`.
-
-    .../kernel_require.rb:54:in `require': cannot load such file -- bundler (LoadError)
 
 <a name="data-directory"></a>
+<a id="data-directory"></a>
 ### Data Directory
 **For Ubuntu and Mac OS X**
 
@@ -205,12 +236,14 @@ If running `$ bundle install` results in the following error, then try installin
     $ chown -R <user>:<user> /data
 
 <a name="setup-database-for-running-tests"></a>
+<a id="setup-database-for-running-tests"></a>
 ###Setup database for running tests
 **For Ubuntu and Mac OS X**
 
     $ RAILS_ENV=development bundle exec rake db:create db:migrate db:test:prepare
 
 <a name="run-tests"></a>
+<a id="run-tests"></a>
 ##Run Tests
 **For Ubuntu and Mac OS X**
 
@@ -221,6 +254,7 @@ If running `$ bundle install` results in the following error, then try installin
 Make sure all necessary backend services (ActiveMQ/start_pollers) are up during test, otherwise some tests would fail.   
 
 <a name="setup-https-for-aaf"></a>
+<a id="setup-https-for-aaf"></a>
 ##Setup https for AAF
 **For Mac OS X**
 
@@ -315,6 +349,7 @@ Then restart apace
     sudo apachectl -k restart
 
 <a name="ingest-an-ausnc-corpus-into-fedora-deprecated"></a>
+<a id="ingest-an-ausnc-corpus-into-fedora-deprecated"></a>
 ##Ingest an AusNC Corpus into Fedora (deprecated)
 For example data, see Download the Corpus in Installing AusNC.
 
@@ -323,11 +358,13 @@ After that, refer to https://github.com/IntersectAustralia/hcsvlab_robochef#inst
     $ rake fedora:ingest corpus=/path/to/corpus/directory
 
 <a name="ingest-a-single-ausnc-corpus-item-into-fedora-deprecated"></a>
+<a id="ingest-a-single-ausnc-corpus-item-into-fedora-deprecated"></a>
 ##Ingest a single AusNC Corpus Item into Fedora (deprecated)
 
     $ rake fedora:ingest_one /path/to/corpus/rdf/file
 
 <a name="clear-all-corpora-from-fedora-deprecated"></a>
+<a id="clear-all-corpora-from-fedora-deprecated"></a>
 ##Clear all corpora from Fedora (deprecated)
 
     $ rake fedora:clear
