@@ -1624,11 +1624,31 @@ N/A
 <td colspan=4> 
 <pre><code>
 {
-	"contributions" : [
-		{"id" : 1, "name" : "ace", "url" : "https://app.alveo.edu.au/contrib/1"},
-		{"id" : 2, "name" : "cooee", "url" : "https://app.alveo.edu.au/contrib/2"}, 
-		{"id" : 3, "name" : "ice", "url": "https://app.alveo.edu.au/contrib/3"}, 
-		{"id" : 4, "name" : "austalk", "url": "https://app.alveo.edu.au/contrib/4"}
+	"own": [
+		{
+			"id" : 1, 
+			"name" : "ace", 
+			"url" : "https://app.alveo.edu.au/contrib/1"
+		},
+		{
+			"id" : 2, 
+			"name" : "cooee", 
+			"url" : "https://app.alveo.edu.au/contrib/2"
+		}
+	],
+	"shared": [
+		{
+			"id" : 3, 
+			"name" : "ice", 
+			"url": "https://app.alveo.edu.au/contrib/3", 
+			"accessible" : true
+		}, 
+		{
+			"id" : 4, 
+			"name" : "austalk", 
+			"url": "https://app.alveo.edu.au/contrib/4", 
+			"accessible" : false
+		}
 	]
 }	
 </code></pre>	
