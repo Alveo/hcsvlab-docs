@@ -7,12 +7,13 @@
 	- Item List
 		- Read Item Lists
 		- Read Items From Item List
+		- Update Item List Metadata
 		- Delete Item List
 		- Share Item List
 		- Unshare Item List
 		- Clear Item List
 		- Add To Item List
-		- Rename Item List
+		- Update Item List
 	- Item
 		- Read Item Metadata
 		- Update Item
@@ -75,7 +76,7 @@ Command line:
 
 	Where <host> is the vlab host, e.g. https://app.alveo.edu.au/
 	$ curl -H "X-API-KEY: WUqhKgM25PJuzivjdvGt" <host>/item_lists.json
-	$ curl -H "X-API-KEY: WUqhKgM25PJuzivjdvGt" -H "Accept: application/json" <host>item_lists
+	$ curl -H "X-API-KEY: WUqhKgM25PJuzivjdvGt" -H "Content-Type: application/json" <host>item_lists
 
 Python
 ```python
@@ -133,7 +134,7 @@ Request uses bad syntax/missing required parameters |400
 ### Read Item Lists
 <table>
 <tr>
-<th> Description </th>
+<th> Description </th>listlist
 <th> URL </th>
 <th> Method </th>
 <th> Returns </th>
@@ -152,23 +153,24 @@ Request uses bad syntax/missing required parameters |400
 <td colspan=4> 
 <pre>
 <CODE>
-[
-	{
-		"name":"Jared's Item List 1",
-		"item_list_url":"https://app.alveo.edu.au/item_lists/5",
-		"num_items":1
-	},
-	{
-		"name":"Jared's Item List 2",
-		"item_list_url":"https://app.alveo.edu.au/item_lists/15",
-		"num_items":3
-	},
-	{
-		"name":"Jared's Item List 3",
-		"item_list_url":"https://app.alveo.edu.au/item_lists/16",
-		"num_items":3
-	}
-] 
+{
+	"own": [
+		{
+			"name": "il_1",
+			"item_list_url": "http://alveo.local:3000/item_lists/13",
+			"num_items": 3,
+			"shared": true
+		},
+		{
+			"name": "il_2",
+			"item_list_url": "http://alveo.local:3000/item_lists/15",
+			"num_items": 2,
+			"shared": false
+		}
+	],
+	"shared": [],
+}
+
 </CODE>
 </pre>
 </td>
@@ -189,7 +191,7 @@ Request uses bad syntax/missing required parameters |400
 <td> Read Items from Item List </td>
 <td> /item_lists/{id} </td>
 <td> Read </td>
-<td> Specified Item List of the user (name, list of items) </td>
+<td> Specified Item List of the user (name, metadata, list of items) </td>
 <td>
 Item list can be retrieved as JSON, ZIP or WARC format. The JSON format will only return the URL for the items in the Item list as shown below. The ZIP and WARC file will create a package containing the documents and metadata of the items in the Item list.
 <br>The Zip file will respect the BagIt structure.
@@ -205,6 +207,9 @@ Item list can be retrieved as JSON, ZIP or WARC format. The JSON format will onl
 <CODE>
 {
 	"name":"Jared's Item List 2",
+	"creator":"Data Owner",
+	"collection":"Cooee",
+	"abstract":"Abstract for Jared's Item list",
 	"num_items":3,
 	"items":[
 		"https://app.alveo.edu.au/catalog/cooee/2-037",
@@ -217,6 +222,17 @@ Item list can be retrieved as JSON, ZIP or WARC format. The JSON format will onl
 </td>
 </tr>
 </table>
+
+### Update Item List Metadata
+<table>
+<tr>
+<th> Description </th>
+<th> URL </th>
+<th> Method </th>
+<th> Returns </th>
+<th> Notes </th>
+</tr>
+
 
 ### Delete Item List
 <table>
@@ -236,7 +252,7 @@ Item list can be retrieved as JSON, ZIP or WARC format. The JSON format will onl
 <td>
 Item list can be deleted via HTTP DELETE mehod with the same endpoint as Read items from item list
 <br>Requests example:
-<br>	curl -X DELETE -H "X-API-KEY: &lt;key&gt;" -H "Accept: application/json" &lt;server&gt;/item_lists/{id}
+<br>	curl -X DELETE -H "X-API-KEY: &lt;key&gt;" -H "Content-Type: application/json" &lt;server&gt;/item_lists/{id}
 </td>
 </tr>
 <tr>
@@ -270,7 +286,7 @@ Item list can be deleted via HTTP DELETE mehod with the same endpoint as Read it
 <td>
 Item list can be shareed via HTTP POST mehod
 <br>Requests example:
-<br>	curl -X POST -d "" -H "X-API-KEY: &lt;key&gt;" -H "Accept: application/json" &lt;server&gt;/item_lists/{id}/share
+<br>	curl -X POST -d "" -H "X-API-KEY: &lt;key&gt;" -H "Content-Type: application/json" &lt;server&gt;/item_lists/{id}/share
 </td>
 </tr>
 <tr>
@@ -304,7 +320,7 @@ Item list can be shareed via HTTP POST mehod
 <td>
 Item list can be unshareed via HTTP POST mehod
 <br>Requests example:
-<br>	curl -X POST -d "" -H "X-API-KEY: &lt;key&gt;" -H "Accept: application/json" &lt;server&gt;/item_lists/{id}/unshare
+<br>	curl -X POST -d "" -H "X-API-KEY: &lt;key&gt;" -H "Content-Type: application/json" &lt;server&gt;/item_lists/{id}/unshare
 </td>
 </tr>
 <tr>
@@ -338,7 +354,7 @@ Item list can be unshareed via HTTP POST mehod
 <td>
 Item list can be unshareed via HTTP POST mehod
 <br>Requests example:
-<br>	curl -X POST -d "" -H "X-API-KEY: &lt;key&gt;" -H "Accept: application/json" &lt;server&gt;/item_lists/{id}/clear
+<br>	curl -X POST -d "" -H "X-API-KEY: &lt;key&gt;" -H "Content-Type: application/json" &lt;server&gt;/item_lists/{id}/clear
 </td>
 </tr>
 <tr>
@@ -372,7 +388,7 @@ Item list can be unshareed via HTTP POST mehod
 <td> POST </td>
 <td> Result of item list operation (error/success) </td>
 <td> This is a post request that requires a JSON set of items sent with it. Hence, cannot be replicated through a browser but through curl this can be done with something akin to:
-<br>curl -H "X-API-KEY: <key>" -H "Content-Type: application/json" -H "Accept: application/json" -X POST -d '{"num_results":2,"items":["<host>/catalog/cooee/2-015","<host>/catalog/cooee/2-021"]}' <host>/item_lists?name=A
+<br>curl -H "X-API-KEY: <key>" -H "Content-Type: application/json" -H "Content-Type: application/json" -X POST -d '{"num_results":2,"items":["<host>/catalog/cooee/2-015","<host>/catalog/cooee/2-021"]}' <host>/item_lists?name=A
 <br>Note: the name doesn't have to be sent in as a parameter attached to the URL, it can also be sent in as part of the JSON
 </td>
 </tr>
@@ -427,7 +443,7 @@ Failure:
 </tr>
 </table>
 
-### Rename Item List
+### Update Item List
 <table>
 <tr>
 <th> Description </th>
@@ -438,12 +454,12 @@ Failure:
 </tr>
 
 <tr>
-<td> Rename Item List </td>
+<td> Update Item List </td>
 <td> /item_lists/{item_list_id} </td>
 <td> PUT </td>
 <td> Item list if successful/error message if failure </td>
-<td> This is a put request that takes the new name of the item list. Example curl command:
-<br>curl -H "X-API-KEY:&lt;api_key&gt;" -H "Accept: application/json" -X PUT -d '{"name":"&lt;new name&gt;"}' &lt;host&gt;/item_lists/:id
+<td> This is a put request that takes the new metadata of the item list. Example curl command:
+<br>curl -H "X-API-KEY:&lt;api_key&gt;" -H "Content-Type: application/json" -X PUT -d '{"name":"&lt;name&gt;", "additional_key":["&lt;metadata_name1&gt;","&lt;metadata_name2&gt;], "additional_value:["&lt;metadata_value1&gt;", "&lt;metadata_value2&gt;"]}' &lt;host&gt;/item_lists/:id
 </td>
 </tr>
 <tr>
@@ -453,20 +469,26 @@ Failure:
 <CODE>
 Success:
 {
-	"name":"Jared's Item List 2",
-	"num_items":3,
-	"items":[
-		"https://app.alveo.edu.au/catalog/cooee/2-037",
-		"https://app.alveo.edu.au/catalog/cooee/2-038",
-		"https://app.alveo.edu.au/catalog/cooee/2-040"
+	"name": "api_name_0",
+	"creator": "Data Owner",
+	"collection": "2nd_coll,first_coll,vt_1,vt_2",
+	"abstract": "item list abstract",
+	"num_items": 6,
+	"items": [
+		"http://alveo.local:3000/catalog/2nd_coll/item_1",
+		"http://alveo.local:3000/catalog/2nd_coll/kid_1",
+		"http://alveo.local:3000/catalog/first_coll/item_1",
+		"http://alveo.local:3000/catalog/vt_1/item_1",
+		"http://alveo.local:3000/catalog/vt_1/item_2",
+		"http://alveo.local:3000/catalog/vt_2/item_1"
 	]
-} 
+}
 Failure:
-	{"error":"name can't be blank"}
-	or
-	{"error":"name too long"}
-	or
-	{"error":"couldn't rename item list"}
+{"error":"name can't be blank"}
+or
+{"error":"name too long"}
+or
+{"error":"couldn't rename item list"}
 </CODE>
 </pre>
 </td>
@@ -586,7 +608,7 @@ Failure:
 <li>Users are only authorised to update an item from collection which they own.</li>
 <li>This is a PUT request. Hence, cannot be replicated through a browser but through curl this can be done with something akin to the following.
 <ul>
-<li><code>curl -H "X-API-KEY: &lt;key&gt;" -H "Content-Type: application/json" -H "Accept: application/json" -X PUT -d '{"metadata": &lt;item_metadata&gt;}' &lt;server&gt;/catalog/&lt;collection_id&gt;/&lt;item_id&gt;</code></li>
+<li><code>curl -H "X-API-KEY: &lt;key&gt;" -H "Content-Type: application/json" -H "Content-Type: application/json" -X PUT -d '{"metadata": &lt;item_metadata&gt;}' &lt;server&gt;/catalog/&lt;collection_id&gt;/&lt;item_id&gt;</code></li>
 </ul>
 </li>
 </ol>
@@ -639,7 +661,7 @@ The following is an example of expected input for &lt;item_metadata&gt;:
 <li>Deleting an item from a collection also deletes all of that items documents and the corresponding document audits.</li>
 <li>This is a DELETE request. Hence, cannot be replicated through a browser but through curl this can be done with something akin to the following.
 <ul>
-<li><code>curl -H "X-API-KEY: &lt;api_key&gt;" -H "Accept: application/json" -X DELETE &lt;server&gt;/catalog/&lt;collection_id&gt;/&lt;item_id&gt;</code></li>
+<li><code>curl -H "X-API-KEY: &lt;api_key&gt;" -H "Content-Type: application/json" -X DELETE &lt;server&gt;/catalog/&lt;collection_id&gt;/&lt;item_id&gt;</code></li>
 </ul>
 </li>
 </ol>
@@ -917,7 +939,7 @@ curl -H "X-API-KEY: &lt;key&gt;" -H "Content-Type: application/json" -X POST -d 
 	<td> POST </td>
 	<td> Result of item list operation (error/success) </td>
 	<td> This is a post request that requires a file sent with it. Hence, cannot be replicated through a browser but through curl this can be done with something akin to:
-<br>curl -H "X-API-KEY:&lt;api_key&gt;" -H "Accept: application/json" -F file=@&lt;path_to_file&gt; &lt;host&gt;/catalog/:id/annotations
+<br>curl -H "X-API-KEY:&lt;api_key&gt;" -H "Content-Type: application/json" -F file=@&lt;path_to_file&gt; &lt;host&gt;/catalog/:id/annotations
 	</td>
 </tr>
 <tr>
@@ -1063,10 +1085,10 @@ Failure:
 	<td> Read </td>
 	<td> Json formatted query result </td>
 	<td> 
-		curl -g -H "X-API-KEY: &lt;API_KEY&gt;" -H "Accept: application/json" "&lt;host&gt;/sparql/&lt;collection-name&gt;?query=&lt;sparql-query&gt;"
+		curl -g -H "X-API-KEY: &lt;API_KEY&gt;" -H "Content-Type: application/json" "&lt;host&gt;/sparql/&lt;collection-name&gt;?query=&lt;sparql-query&gt;"
 		<br>
 		Example:<br>
-		curl -g -H "X-API-KEY: &lt;API_KEY&gt;" -H "Accept: application/json" "&lt;host&gt;/sparql/cooee?query=select * where {?s &lt;http://purl.org/dc/terms/isPartOf&gt; ?o}"  (e.g.curl -H "X-API-KEY:<APIkey>" -H "Content-Type: application/json" -H "Accept: application/json" https://<serverurl>/licences
+		curl -g -H "X-API-KEY: &lt;API_KEY&gt;" -H "Content-Type: application/json" "&lt;host&gt;/sparql/cooee?query=select * where {?s &lt;http://purl.org/dc/terms/isPartOf&gt; ?o}"  (e.g.curl -H "X-API-KEY:<APIkey>" -H "Content-Type: application/json" -H "Content-Type: application/json" https://<serverurl>/licences
 	</td>
 </tr>
 <tr>
@@ -1184,10 +1206,10 @@ Failure:
 Hence, cannot be replicated through a browser but through curl this can be done with something akin to the following:
 <ul>
 <li>When creating a collection with the collection name supplied as a URL parameter:
-<br><code>curl -X POST -H "X-API-KEY: &lt;key&gt;" -H "Content-Type: application/json" -H "Accept: application/json" -d '{ "collection_metadata": &lt;collection_metadata&gt;}' '&lt;server&gt;/catalog?name=&lt;collection_name&gt;&licence_id=1&private=true'</code>
+<br><code>curl -X POST -H "X-API-KEY: &lt;key&gt;" -H "Content-Type: application/json" -H "Content-Type: application/json" -d '{ "collection_metadata": &lt;collection_metadata&gt;}' '&lt;server&gt;/catalog?name=&lt;collection_name&gt;&licence_id=1&private=true'</code>
 </li>
 <li>When creating a collection with the collection name supplied as a JSON parameter:
-<br><code>curl -X POST -H "X-API-KEY: &lt;key&gt;" -H "Content-Type: application/json" -H "Accept: application/json" -d '{ "collection_metadata": &lt;collection_metadata&gt;, "name":"&lt;collection_name&gt;", "licence_id":1, "private":true}' &lt;server&gt;/catalog</code>
+<br><code>curl -X POST -H "X-API-KEY: &lt;key&gt;" -H "Content-Type: application/json" -H "Content-Type: application/json" -d '{ "collection_metadata": &lt;collection_metadata&gt;, "name":"&lt;collection_name&gt;", "licence_id":1, "private":true}' &lt;server&gt;/catalog</code>
 </li>
 </ul>
 </li>
@@ -1266,7 +1288,7 @@ The following is an example of expected input for &lt;collection_metadata&gt;:
 </li>
 <li>This is a PUT request. Hence, cannot be replicated through a browser but through curl this can be done with something akin to the following.
 <ul>
-<li><code>curl -H "X-API-KEY: &lt;key&gt;"  -H "Content-Type: application/json" -H "Accept: application/json" -X PUT -d '{ "replace": &lt;true/false&gt;, "collection_metadata": &lt;collection_metadata&gt;}' &lt;server&gt;/catalog/&lt;collection_id&gt;</code></li>
+<li><code>curl -H "X-API-KEY: &lt;key&gt;"  -H "Content-Type: application/json" -H "Content-Type: application/json" -X PUT -d '{ "replace": &lt;true/false&gt;, "collection_metadata": &lt;collection_metadata&gt;}' &lt;server&gt;/catalog/&lt;collection_id&gt;</code></li>
 </ul>
 </li>
 </ol>
@@ -1331,16 +1353,16 @@ This is a POST request that requires a JSON-LD set of collection metadata to be 
 Hence, cannot be replicated through a browser but through curl this can be done with something akin to the following:
 <ul>
 <li>If adding an item with document(s) that are referenced (with "file://" or "http://"):
-<br><code>curl -X POST -H "X-API-KEY: &lt;key&gt;" -H "Accept: application/json" -H "Content-Type: application/json"  -d '{"items":[{"metadata":{&lt;item_metadata&gt;}'}]}' &lt;server&gt;/catalog/&lt;collection_id&gt;</code>
+<br><code>curl -X POST -H "X-API-KEY: &lt;key&gt;" -H "Content-Type: application/json" -H "Content-Type: application/json"  -d '{"items":[{"metadata":{&lt;item_metadata&gt;}'}]}' &lt;server&gt;/catalog/&lt;collection_id&gt;</code>
 </li>
 <li>If adding an item with document(s) whose contents are embedded in the JSON item metadata:
-<br><code>curl -X POST -H "X-API-KEY: &lt;key&gt;" -H "Accept: application/json" -H "Content-Type: application/json"  -d '{"items":[{"documents":[{&lt;document_metadata&gt;}], "metadata":{&lt;item_metadata&gt;}'}]}' &lt;server&gt;/catalog/&lt;collection_id&gt;</code>
+<br><code>curl -X POST -H "X-API-KEY: &lt;key&gt;" -H "Content-Type: application/json" -H "Content-Type: application/json"  -d '{"items":[{"documents":[{&lt;document_metadata&gt;}], "metadata":{&lt;item_metadata&gt;}'}]}' &lt;server&gt;/catalog/&lt;collection_id&gt;</code>
 </li>
 <li>If adding an item with a single document uploaded as part of the HTTP request:
-<br><code>curl -X POST -H "X-API-KEY: &lt;key&gt;" -H "Accept: application/json" -F file=@"&lt;file_location&gt;" -F items='[{&lt;item_metadata&gt;}]' &lt;server&gt;/catalog/&lt;collection_id&gt;</code>
+<br><code>curl -X POST -H "X-API-KEY: &lt;key&gt;" -H "Content-Type: application/json" -F file=@"&lt;file_location&gt;" -F items='[{&lt;item_metadata&gt;}]' &lt;server&gt;/catalog/&lt;collection_id&gt;</code>
 </li>
 <li>If adding an item with multiple documents uploaded as part of the HTTP request:
-<br><code>curl -X POST -H "X-API-KEY: &lt;key&gt;" -H "Accept: application/json" -F file[]=@"&lt;file_1_location&gt;" -F file[]=@"&lt;file_2_location&gt;" -F items='[{&lt;item_metadata&gt;}]' &lt;server&gt;/catalog/&lt;collection_id&gt;</code>
+<br><code>curl -X POST -H "X-API-KEY: &lt;key&gt;" -H "Content-Type: application/json" -F file[]=@"&lt;file_1_location&gt;" -F file[]=@"&lt;file_2_location&gt;" -F items='[{&lt;item_metadata&gt;}]' &lt;server&gt;/catalog/&lt;collection_id&gt;</code>
 </li>
 </ul>
 </li>
@@ -1424,11 +1446,11 @@ Hence, cannot be replicated through a browser but through curl this can be done 
 <li> When uploading files or including the document content as JSON the document source metadata  <code>"dcterms:source":{"@id":"&lt;file_or_http_uri&gt;"}</code> does not need to be supplied. Instead the system will automatically assign a location for these document files and generate this metadata accordingly. However it is essential to include the document source metadata term for any documents referenced with "file://" or "http://".</li>
 <li>This is a POST request that requires a JSON-LD set of document metadata to be sent with it. Hence, cannot be replicated through a browser but through curl this can be done with something akin to the following.
 <ul>
-<li>If adding a a document referenced (with "file://" or "http://"): <code>curl -X POST -H "X-API-KEY: &lt;key&gt;" -H "Accept: application/json" -H "Content-Type: application/json"  -d '{"metadata":{&lt;document_metadata&gt;}' &lt;server&gt;/catalog/&lt;collection_id&gt;/&lt;item_id&gt;</code></li>
+<li>If adding a a document referenced (with "file://" or "http://"): <code>curl -X POST -H "X-API-KEY: &lt;key&gt;" -H "Content-Type: application/json" -H "Content-Type: application/json"  -d '{"metadata":{&lt;document_metadata&gt;}' &lt;server&gt;/catalog/&lt;collection_id&gt;/&lt;item_id&gt;</code></li>
 <li>If adding a document whose content is embedded in JSON:
-<code>curl -X POST -H "X-API-KEY: &lt;key>" -H "Accept: application/json" -H "Content-Type: application/json"  -d '{"document_content": "&lt;document_content&gt;", "metadata":{&lt;document_metadata&gt;}' &lt;server&gt;/catalog/&lt;collection_id&gt;/&lt;item_id&gt;</code></li>
+<code>curl -X POST -H "X-API-KEY: &lt;key>" -H "Content-Type: application/json" -H "Content-Type: application/json"  -d '{"document_content": "&lt;document_content&gt;", "metadata":{&lt;document_metadata&gt;}' &lt;server&gt;/catalog/&lt;collection_id&gt;/&lt;item_id&gt;</code></li>
 <li>If adding an item with a single document uploaded as part of the HTTP request:
-<code>curl -X POST -H "X-API-KEY: &lt;key&gt;" -H "Accept: application/json" -F file=@"&lt;file_location&gt;" -F metadata='{&lt;document_metadata&gt;}' &lt;server&gt;/catalog/&lt;collection_id&gt;/&lt;item_id&gt;</code></li>
+<code>curl -X POST -H "X-API-KEY: &lt;key&gt;" -H "Content-Type: application/json" -F file=@"&lt;file_location&gt;" -F metadata='{&lt;document_metadata&gt;}' &lt;server&gt;/catalog/&lt;collection_id&gt;/&lt;item_id&gt;</code></li>
 </ul>
 </li>
 <li>To add document to owned contribution, append parameter <code>contrib_id</code> to indicate the specific contribution</li>
@@ -1496,7 +1518,7 @@ Hence, cannot be replicated through a browser but through curl this can be done 
 <li>If the source for the document is a file, e.g. on upload was sourced at: { "dcterms:source": { "@id": "file:///home/devel/&lt;file_name&gt;.txt"}, on API delete document call, the ORIGINAL SOURCE file is deleted.
 <li>This is a DELETE request. Hence, cannot be replicated through a browser but through curl this can be done with something akin to the following.
 <ul>
-<li><code>curl -H "X-API-KEY: &lt;api_key&gt;"  -H "Accept: application/json" -X DELETE &lt;server&gt;/catalog/&lt;collection_id&gt;/&lt;item_id&gt;/document/&lt;document_filename&gt;</code></li>
+<li><code>curl -H "X-API-KEY: &lt;api_key&gt;"  -H "Content-Type: application/json" -X DELETE &lt;server&gt;/catalog/&lt;collection_id&gt;/&lt;item_id&gt;/document/&lt;document_filename&gt;</code></li>
 </ul>
 </li>
 </ol>	
