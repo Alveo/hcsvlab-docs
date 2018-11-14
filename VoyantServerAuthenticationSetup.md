@@ -194,6 +194,8 @@ provider = "doorkeeper"
 #login-url = "https://github.com/login/oauth/authorize"
 login-url = "https://staging.alveo.edu.au/oauth/authorize"
 redeem-url = "https://staging.alveo.edu.au/oauth/token"
+# so far only doorkeeper uses this field 
+oauth-provider-host = "staging.alve.edu.au"
 
 ## The OAuth Client ID, Secret
 #client_id = "05d6bbb94484b143c577"
